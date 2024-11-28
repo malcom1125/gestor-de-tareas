@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Tareas</title>
+    <style>
+        :root {
+            --color-primario: #2c3e50;
+            --color-secundario: #3498db;
+            --color-fondo: #ecf0f1;
+            --color-texto: #333;
+            --color-completada: #95a5a6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--color-fondo);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .contenedor {
+            background-color: white;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        .titulo {
+            text-align: center;
+            color: var(--color-primario);
+            margin-bottom: 20px;
+        }
+
+        .formulario-tarea {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .formulario-tarea input,
+        .formulario-tarea select {
+            flex-grow: 1;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .formulario-tarea button {
+            padding: 10px 15px;
+            background-color: var(--color-secundario);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .formulario-tarea button:hover {
+            background-color: #2980b9;
+        }
+
+        .lista-tareas {
+            list-style-type: none;
+        }
+
+        .tarea {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+
+        .tarea:hover {
+            background-color: #f9f9f9;
+        }
+
+        .tarea-completada {
+            text-decoration: line-through;
+            color: var(--color-completada);
+        }
+
+        .acciones-tarea {
+            display: flex;
+            gap: 10px;
+        }
+
+        .boton-completar,
+        .boton-eliminar {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            transition: transform 0.2s;
+        }
+
+        .boton-completar:hover,
+        .boton-eliminar:hover {
+            transform: scale(1.2);
+        }
+
+        .boton-completar {
+            color: #2ecc71;
+        }
+
+        .boton-eliminar {
+            color: #e74c3c;
+        }
+
+        .prioridad {
+            font-size: 0.8em;
+            margin-left: 10px;
+            padding: 3px 6px;
+            border-radius: 3px;
+        }
+
+        .prioridad-baja {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .prioridad-media {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .prioridad-alta {
+            background-color: #e74c3c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="contenedor">
+        <h1 class="titulo">Gestor de Tareas</h1>
+        
+        <form id="formularioTarea" class="formulario-tarea">
+            <input 
+                type="text" 
+                id="inputTarea" 
+                placeholder="Escribe una nueva tarea..." 
+                required
+                maxlength="100"
+            >
+            <select id="selectPrioridad">
+                <option value="baja">Baja</option>
+                <option value="media">Media</option>
+                <option value="alta">Alta</option>
+            </select>
+            <button type="submit">Añadir</button>
+        </form>
+
+        <ul id="listaTareas" class="lista-tareas"></ul>
+    </div>
+
+    <script>
+        class GestorTareas {
+            constructor() {
+                // Inicializar elementos del DOM
+                this.listaTareas = document.getElementById('listaTareas');
+                this.formularioTarea = document.getElementById('formularioTarea');
+                this.inputTarea = document.getElementById('inputTarea');
+                this.selectPrioridad = document.getElementById('selectPrioridad');
+
+                // Cargar tareas desde localStorage
+                this.tareas = JSON.parse(localStorage.getItem('tareas')) || [];
+
+                // Configurar eventos
+                this.formularioTarea.addEventListener('submit', this.agregarTarea.bind(this));
+
+                // Renderizar tareas existentes
+                this.renderizarTareas();
+            }
+
+            agregarTarea(evento) {
+                evento.preventDefault();
+
+                // Crear objeto de tarea
+                const tarea = {
+                    id: Date.now(), // Identificador único
+                    texto: this.inputTarea.value.trim(),
+                    prioridad: this.selectPrioridad.value,
+                    completada: false,
+                    fechaCreacion: new Date().toLocaleString()
+                };
+
+                // Validar que la tarea no esté vacía
+                if (tarea.texto === '') return;
+
+                // Añadir tarea al arreglo
+                this.tareas.push(tarea);
+
+                // Guardar en localStorage
+                this.guardarTareas();
+
+                // Renderizar tareas
+                this.renderizarTareas();
+
+                // Limpiar formulario
+                this.inputTarea.value = '';
+                this.selectPrioridad.value = 'baja';
+            }
+
+            renderizarTareas() {
+                // Limpiar lista de tareas
+                this.listaTareas.innerHTML = '';
+
+                // Renderizar cada tarea
+                this.tareas.forEach(tarea => {
+                    const elementoTarea = document.createElement('li');
+                    elementoTarea.classList.add('tarea');
+
+                    // Añadir clase de tarea completada
+                    if (tarea.completada) {
+                        elementoTarea.classList.add('tarea-completada');
+                    }
+
+                    // Crear contenido de la tarea
+                    elementoTarea.innerHTML = `
+                        <div>
+                            <span>${tarea.texto}</span>
+                            <span class="prioridad prioridad-${tarea.prioridad}">
+                                ${tarea.prioridad.charAt(0).toUpperCase() + tarea.prioridad.slice(1)}
+                            </span>
+                        </div>
+                        <div class="acciones-tarea">
+                            <button 
+                                class="boton-completar" 
+                                onclick="gestorTareas.alternarCompletada(${tarea.id})"
+                                title="Completar tarea"
+                            >
+                                ✓
+                            </button>
+                            <button 
+                                class="boton-eliminar" 
+                                onclick="gestorTareas.eliminarTarea(${tarea.id})"
+                                title="Eliminar tarea"
+                            >
+                                🗑️
+                            </button>
+                        </div>
+                    `;
+
+                    this.listaTareas.appendChild(elementoTarea);
+                });
+            }
+
+            alternarCompletada(id) {
+                // Encontrar la tarea por ID
+                const indiceTarea = this.tareas.findIndex(t => t.id === id);
+                
+                if (indiceTarea !== -1) {
+                    // Alternar estado de completada
+                    this.tareas[indiceTarea].completada = !this.tareas[indiceTarea].completada;
+                    
+                    // Guardar cambios
+                    this.guardarTareas();
+                    
+                    // Renderizar de nuevo
+                    this.renderizarTareas();
+                }
+            }
+
+            eliminarTarea(id) {
+                // Filtrar tareas, excluyendo la que tiene el ID especificado
+                this.tareas = this.tareas.filter(tarea => tarea.id !== id);
+                
+                // Guardar cambios
+                this.guardarTareas();
+                
+                // Renderizar de nuevo
+                this.renderizarTareas();
+            }
+
+            guardarTareas() {
+                // Guardar tareas en localStorage
+                localStorage.setItem('tareas', JSON.stringify(this.tareas));
+            }
+        }
+
+        // Instanciar gestor de tareas
+        const gestorTareas = new GestorTareas();
+    </script>
+</body>
+</html>
